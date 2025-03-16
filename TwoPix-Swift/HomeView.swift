@@ -7,19 +7,44 @@ struct HomeView: View {
     @State private var showChat = false
     @State private var showProfile = false
     @State private var showPermissionAlert = false
+    @State private var showFrontFlashEffect = false  // Controls the persistent flash overlay
 
     var body: some View {
         Group {
             if authManager.isAuthenticated {
                 if authManager.isConnected {
                     ZStack {
-                        // Bottom layer: Camera preview.
+                        // Camera preview with double-tap gesture to flip the camera.
                         CameraPreviewView(cameraManager: cameraManager)
                             .ignoresSafeArea()
+                            .gesture(
+                                TapGesture(count: 2)
+                                    .onEnded {
+                                        print("Double tap detected, flipping camera.")
+                                        cameraManager.flipCamera()
+                                    }
+                            )
                         
-                        // Overlay: Transparent controls.
+                        // Front camera flash overlay using a radial gradient with a larger circle.
+                        if cameraManager.isFrontCamera && showFrontFlashEffect {
+                            GeometryReader { geo in
+                                RadialGradient(
+                                    gradient: Gradient(stops: [
+                                        .init(color: Color.clear, location: 0.4),
+                                        .init(color: Color.clear, location: 0.6),
+                                        .init(color: Color.white, location: 1.0)
+                                    ]),
+                                    center: .center,
+                                    startRadius: geo.size.width * 0.4,  // Increased start radius
+                                    endRadius: geo.size.width * 0.8     // Increased end radius for a larger circle
+                                )
+                                .ignoresSafeArea()
+                            }
+                        }
+                        
+                        // Overlay with controls.
                         VStack {
-                            // Top controls (e.g., chat, profile, flip, flash)
+                            // Top controls (chat, profile, flip, flash).
                             HStack {
                                 Spacer()
                                 HStack(spacing: 16) {
@@ -41,7 +66,16 @@ struct HomeView: View {
                                             .padding(8)
                                             .background(Circle().fill(Color.black.opacity(0.5)))
                                     }
-                                    Button(action: { cameraManager.toggleFlash() }) {
+                                    Button(action: {
+                                        if cameraManager.isFrontCamera {
+                                            // Toggle the persistent flash overlay.
+                                            showFrontFlashEffect.toggle()
+                                            print("Front flash effect toggled: \(showFrontFlashEffect)")
+                                        } else {
+                                            // For the back camera, toggle the actual torch.
+                                            cameraManager.toggleFlash()
+                                        }
+                                    }) {
                                         Image(systemName: "bolt.fill")
                                             .foregroundColor(.white)
                                             .padding(8)
@@ -84,7 +118,7 @@ struct HomeView: View {
                             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
                             .padding(.bottom, 50)
                         }
-                        .background(Color.clear) // ensure overlay is transparent
+                        .background(Color.clear)
                         
                         // Hidden NavigationLinks.
                         NavigationLink(destination: ChatView(pixCode: authManager.pixCode), isActive: $showChat) {
@@ -125,6 +159,7 @@ struct HomeView: View {
         }
     }
     
+    // This function simulates checking permissions after a delay.
     private func recheckPermissionsAfterDelay() {
         DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
             cameraManager.checkPermissions()

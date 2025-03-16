@@ -13,9 +13,6 @@ class CameraPreviewUIView: UIView {
     
     override init(frame: CGRect) {
         super.init(frame: frame)
-        // For debugging, show a green border so you know the view is visible.
-        self.layer.borderColor = UIColor.green.cgColor
-        self.layer.borderWidth = 2
     }
     
     required init?(coder: NSCoder) {

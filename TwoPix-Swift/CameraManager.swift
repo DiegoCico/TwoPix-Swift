@@ -15,8 +15,14 @@ class CameraManager: NSObject, ObservableObject {
     }
     
     private var currentInput: AVCaptureDeviceInput?
-    private var currentCameraPosition: AVCaptureDevice.Position = .back
+    @Published var currentCameraPosition: AVCaptureDevice.Position = .back  // Now published
+    
     private var isFlashOn: Bool = false
+    
+    // Convenience computed property to check if the front camera is in use.
+    var isFrontCamera: Bool {
+        return currentCameraPosition == .front
+    }
     
     // MARK: - Permissions
     func checkPermissions() {
@@ -40,7 +46,6 @@ class CameraManager: NSObject, ObservableObject {
             self.configureSession()
             self.session.startRunning()
             DispatchQueue.main.async {
-                // For debugging, create a preview layer (though our custom view will use the session directly)
                 self.previewLayer = AVCaptureVideoPreviewLayer(session: self.session)
                 self.previewLayer?.videoGravity = .resizeAspectFill
                 if let connection = self.previewLayer?.connection {
