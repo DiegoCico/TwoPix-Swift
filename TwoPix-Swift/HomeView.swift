@@ -90,67 +90,68 @@ struct CameraPreviewView: UIViewRepresentable {
 // MARK: - HomeView with Carousel Buttons
 
 struct HomeView: View {
-    @State private var currentSelection: Int = 1
     @StateObject private var cameraManager = CameraManager()
+    @StateObject private var authManager = AuthManager()
     
     var body: some View {
-        ZStack {
-            // Live camera preview as the background.
-            CameraPreviewView(cameraManager: cameraManager)
-                .ignoresSafeArea()
-            
-            VStack {
-                Spacer()
-                // Carousel of three circular buttons
-                TabView(selection: $currentSelection) {
-                    // Left button: FitCheck
-                    Button(action: {
-                        // Add FitCheck functionality here.
-                        print("FitCheck tapped")
-                    }) {
-                        Text("FitCheck")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .frame(width: 80, height: 80)
-                            .background(Circle().fill(Color.red.opacity(0.7)))
-                            .scaleEffect(currentSelection == 0 ? 1.2 : 1.0)
+        Group {
+            if authManager.isAuthenticated {
+                if authManager.isConnected {
+                    ZStack {
+                        // Live camera preview as the background.
+                        CameraPreviewView(cameraManager: cameraManager)
+                            .ignoresSafeArea()
+
+                        VStack {
+                            Spacer()
+                            // Carousel of buttons
+                            TabView(selection: .constant(1)) {
+                                Button(action: {
+                                    print("FitCheck tapped")
+                                }) {
+                                    Text("FitCheck")
+                                        .font(.headline)
+                                        .foregroundColor(.white)
+                                        .frame(width: 80, height: 80)
+                                        .background(Circle().fill(Color.red.opacity(0.7)))
+                                }
+                                .tag(0)
+
+                                Button(action: {
+                                    print("Blank tapped")
+                                }) {
+                                    Text("")
+                                        .frame(width: 80, height: 80)
+                                        .background(Circle().fill(Color.gray))
+                                }
+                                .tag(1)
+
+                                Button(action: {
+                                    print("Spicy tapped")
+                                }) {
+                                    Text("Spicy")
+                                        .font(.headline)
+                                        .foregroundColor(.white)
+                                        .frame(width: 80, height: 80)
+                                        .background(Circle().fill(Color.orange))
+                                }
+                                .tag(2)
+                            }
+                            .frame(height: 120)
+                            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+                            .padding(.bottom, 50)
+                        }
                     }
-                    .tag(0)
-                    
-                    // Middle button: Blank
-                    Button(action: {
-                        // Add any functionality for the blank button.
-                        print("Blank tapped")
-                    }) {
-                        Text("")
-                            .frame(width: 80, height: 80)
-                            .background(Circle().fill(Color.gray))
-                            .scaleEffect(currentSelection == 1 ? 1.2 : 1.0)
+                    .onAppear {
+                        cameraManager.checkPermissions()
+                        cameraManager.startSession()
                     }
-                    .tag(1)
-                    
-                    // Right button: Spicy
-                    Button(action: {
-                        // Add Spicy functionality here.
-                        print("Spicy tapped")
-                    }) {
-                        Text("Spicy")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .frame(width: 80, height: 80)
-                            .background(Circle().fill(Color.orange))
-                            .scaleEffect(currentSelection == 2 ? 1.2 : 1.0)
-                    }
-                    .tag(2)
+                } else {
+                    PixCodeView(fullName: authManager.fullName, username: authManager.username, dob: authManager.dob)
                 }
-                .frame(height: 120)
-                .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
-                .padding(.bottom, 50)
+            } else {
+                AuthView()
             }
-        }
-        .onAppear {
-            cameraManager.checkPermissions()
-            cameraManager.startSession()
         }
     }
 }

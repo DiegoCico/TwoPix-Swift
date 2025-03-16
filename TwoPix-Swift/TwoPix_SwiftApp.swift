@@ -1,23 +1,25 @@
-//
-//  TwoPix_SwiftApp.swift
-//  TwoPix-Swift
-//
-//  Created by Diego Cicotoste on 3/14/25.
-//
-
 import SwiftUI
 import Firebase
 
 @main
 struct TwoPixApp: App {
+    @StateObject private var authManager = AuthManager()
+    
     init() {
         FirebaseApp.configure()
     }
 
     var body: some Scene {
         WindowGroup {
-            AuthView() 
+            if authManager.isAuthenticated {
+                if authManager.isConnected {
+                    HomeView()
+                } else {
+                    PixCodeView(fullName: authManager.fullName, username: authManager.username, dob: authManager.dob)
+                }
+            } else {
+                AuthView()
+            }
         }
     }
 }
-
