@@ -11,76 +11,113 @@ struct PixCodeView: View {
     @State private var inputPixCode: String = ""
     @State private var message: String = ""
     @State private var navigateToHome: Bool = false
+    @State private var navigateToAuth: Bool = false  // For navigating back to AuthView
+    
+    // Remove the local presentationMode since we want to fully reset to AuthView.
     
     var body: some View {
-        ZStack {
-            Color.black.ignoresSafeArea()
-            VStack(spacing: 20) {
-                Text("Pix Code")
-                    .font(.largeTitle)
-                    .foregroundColor(.pink)
-                    .bold()
-                
-                Button(action: handleGeneratePixCode) {
-                    Text("Generate Pix Code")
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.red)
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
-                }
-                
-                if !generatedPixCode.isEmpty {
-                    Text("Your Code: \(generatedPixCode)")
-                        .font(.title2)
-                        .foregroundColor(.white)
-                    Text("Waiting for partner to enter code")
-                        .foregroundColor(.white)
-                }
-                
-                TextField("Enter Pix Code", text: $inputPixCode)
+        NavigationView {
+            ZStack {
+                Color.black.ignoresSafeArea()
+                VStack(spacing: 20) {
+                    // Custom "Go Back" Button that returns to AuthView
+                    HStack {
+                        Button(action: {
+                            signOutAndRestart()
+                        }) {
+                            Text("Go Back")
+                                .foregroundColor(.white)
+                        }
+                        Spacer()
+                    }
                     .padding()
-                    .background(Color.gray.opacity(0.2))
-                    .cornerRadius(8)
-                    .foregroundColor(.white)
-                
-                Button(action: handleSubmitPixCode) {
-                    Text("Submit Pix Code")
-                        .frame(maxWidth: .infinity)
+                    
+                    Text("Pix Code")
+                        .font(.largeTitle)
+                        .foregroundColor(.pink)
+                        .bold()
+                    
+                    Button(action: handleGeneratePixCode) {
+                        Text("Generate Pix Code")
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.red)
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                    }
+                    
+                    if !generatedPixCode.isEmpty {
+                        Text("Your Code: \(generatedPixCode)")
+                            .font(.title2)
+                            .foregroundColor(.white)
+                        Text("Waiting for partner to enter code")
+                            .foregroundColor(.white)
+                    }
+                    
+                    TextField("Enter Pix Code", text: $inputPixCode)
                         .padding()
-                        .background(Color.red)
-                        .foregroundColor(.white)
+                        .background(Color.gray.opacity(0.2))
                         .cornerRadius(8)
+                        .foregroundColor(.white)
+                    
+                    Button(action: handleSubmitPixCode) {
+                        Text("Submit Pix Code")
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.red)
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                    }
+                    
+                    if !message.isEmpty {
+                        Text(message)
+                            .foregroundColor(.yellow)
+                    }
+                    
+                    NavigationLink(
+                        destination: HomeView(),
+                        isActive: $navigateToHome,
+                        label: { EmptyView() }
+                    )
+                    
+                    NavigationLink(
+                        destination: AuthView(),
+                        isActive: $navigateToAuth,
+                        label: { EmptyView() }
+                    )
                 }
-                
-                if !message.isEmpty {
-                    Text(message)
-                        .foregroundColor(.yellow)
-                }
-                
-                NavigationLink(
-                    destination: HomeView(),
-                    isActive: $navigateToHome,
-                    label: { EmptyView() }
-                )
+                .padding()
             }
-            .padding()
+            // Hide the default navigation bar to avoid stacking default back buttons.
+            .navigationBarHidden(true)
         }
     }
     
+    // Generates a random 6-digit pix code and checks Firestore to ensure uniqueness.
     private func handleGeneratePixCode() {
-        // Generate a random 6-digit code.
         let code = String(Int.random(in: 100000...999999))
-        generatedPixCode = code
+        let db = Firestore.firestore()
+        db.collection("users")
+            .whereField("pixCode", isEqualTo: code)
+            .getDocuments { snapshot, error in
+                if let error = error {
+                    message = "Error checking pix code: \(error.localizedDescription)"
+                    return
+                }
+                if let snapshot = snapshot, !snapshot.documents.isEmpty {
+                    // Code already exists, try again.
+                    handleGeneratePixCode()
+                } else {
+                    // Code is unique.
+                    generatedPixCode = code
+                }
+            }
     }
     
     private func handleSubmitPixCode() {
-        // In a real app, you’d match this code with a partner’s input.
-        // For demo purposes, we check if the entered code matches the generated code.
+        // Check if the entered code matches the generated code.
         if inputPixCode == generatedPixCode && !generatedPixCode.isEmpty {
             message = "Users connected successfully!"
-            
-            // Update the current user's Firestore document to store the Pix Code and mark them as connected.
             if let uid = Auth.auth().currentUser?.uid {
                 Firestore.firestore().collection("users").document(uid).updateData([
                     "pixCode": generatedPixCode,
@@ -97,6 +134,16 @@ struct PixCodeView: View {
             }
         } else {
             message = "Pix Code does not match. Please try again."
+        }
+    }
+    
+    // Signs out the current user and navigates back to the Auth screen.
+    private func signOutAndRestart() {
+        do {
+            try Auth.auth().signOut()
+            navigateToAuth = true
+        } catch {
+            print("Error signing out: \(error.localizedDescription)")
         }
     }
 }
