@@ -8,17 +8,18 @@ struct TwoPixApp: App {
     init() {
         FirebaseApp.configure()
     }
-
+    
     var body: some Scene {
         WindowGroup {
+            // If the user is authenticated, show HomeView; if not, show AuthView.
             if authManager.isAuthenticated {
-                if authManager.isConnected {
+                NavigationView {
                     HomeView()
-                } else {
-                    PixCodeView(fullName: authManager.fullName, username: authManager.username, dob: authManager.dob)
+                        .environmentObject(authManager)
                 }
             } else {
                 AuthView()
+                    .environmentObject(authManager)
             }
         }
     }
