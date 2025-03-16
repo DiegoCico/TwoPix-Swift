@@ -5,21 +5,19 @@ struct CameraPreviewView: UIViewRepresentable {
     @ObservedObject var cameraManager: CameraManager
     
     func makeUIView(context: Context) -> UIView {
-        let view = UIView()
-        view.backgroundColor = .black
-        
-        // If the preview layer is already set, add it as a sublayer.
-        if let previewLayer = cameraManager.previewLayer {
-            previewLayer.frame = view.bounds
-            view.layer.addSublayer(previewLayer)
-        }
+        let view = CameraPreviewUIView()
+        // Attach the session from the CameraManager to the view's preview layer.
+        view.previewLayer.session = cameraManager.captureSession
+        view.previewLayer.videoGravity = .resizeAspectFill
+        print("makeUIView: initial frame: \(view.frame)")
         return view
     }
     
     func updateUIView(_ uiView: UIView, context: Context) {
-        // Ensure the preview layer always fits the view bounds.
-        if let previewLayer = cameraManager.previewLayer {
-            previewLayer.frame = uiView.bounds
-        }
+        guard let previewView = uiView as? CameraPreviewUIView else { return }
+        // Reassign the session (in case it changed) and update frame.
+        previewView.previewLayer.session = cameraManager.captureSession
+        previewView.previewLayer.frame = uiView.bounds
+        print("updateUIView: updated frame: \(uiView.bounds)")
     }
 }

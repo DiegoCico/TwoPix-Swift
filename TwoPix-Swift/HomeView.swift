@@ -3,7 +3,7 @@ import AVFoundation
 
 struct HomeView: View {
     @StateObject private var cameraManager = CameraManager()
-    @StateObject private var authManager = AuthManager() // Assumes you have an AuthManager in your project.
+    @StateObject private var authManager = AuthManager() // Assumes AuthManager exists and is set up.
     @State private var showChat = false
     @State private var showProfile = false
     @State private var showPermissionAlert = false
@@ -13,46 +13,35 @@ struct HomeView: View {
             if authManager.isAuthenticated {
                 if authManager.isConnected {
                     ZStack {
-                        // Live camera preview as the background.
+                        // Bottom layer: Camera preview.
                         CameraPreviewView(cameraManager: cameraManager)
                             .ignoresSafeArea()
                         
+                        // Overlay: Transparent controls.
                         VStack {
-                            // Top-right overlay buttons.
+                            // Top controls (e.g., chat, profile, flip, flash)
                             HStack {
                                 Spacer()
                                 HStack(spacing: 16) {
-                                    // Chat Button
-                                    Button(action: {
-                                        showChat = true
-                                    }) {
+                                    Button(action: { showChat = true }) {
                                         Image(systemName: "message.fill")
                                             .foregroundColor(.white)
                                             .padding(8)
                                             .background(Circle().fill(Color.black.opacity(0.5)))
                                     }
-                                    // Profile Button
-                                    Button(action: {
-                                        showProfile = true
-                                    }) {
+                                    Button(action: { showProfile = true }) {
                                         Image(systemName: "person.crop.circle")
                                             .foregroundColor(.white)
                                             .padding(8)
                                             .background(Circle().fill(Color.black.opacity(0.5)))
                                     }
-                                    // Flip Camera Button
-                                    Button(action: {
-                                        cameraManager.flipCamera()
-                                    }) {
+                                    Button(action: { cameraManager.flipCamera() }) {
                                         Image(systemName: "camera.rotate.fill")
                                             .foregroundColor(.white)
                                             .padding(8)
                                             .background(Circle().fill(Color.black.opacity(0.5)))
                                     }
-                                    // Flash Button
-                                    Button(action: {
-                                        cameraManager.toggleFlash()
-                                    }) {
+                                    Button(action: { cameraManager.toggleFlash() }) {
                                         Image(systemName: "bolt.fill")
                                             .foregroundColor(.white)
                                             .padding(8)
@@ -64,11 +53,9 @@ struct HomeView: View {
                             
                             Spacer()
                             
-                            // Carousel of buttons at the bottom.
+                            // Bottom carousel buttons.
                             TabView(selection: .constant(1)) {
-                                Button(action: {
-                                    print("FitCheck tapped")
-                                }) {
+                                Button(action: { print("FitCheck tapped") }) {
                                     Text("FitCheck")
                                         .font(.headline)
                                         .foregroundColor(.white)
@@ -77,18 +64,14 @@ struct HomeView: View {
                                 }
                                 .tag(0)
                                 
-                                Button(action: {
-                                    print("Blank tapped")
-                                }) {
+                                Button(action: { print("Blank tapped") }) {
                                     Text("")
                                         .frame(width: 80, height: 80)
                                         .background(Circle().fill(Color.gray))
                                 }
                                 .tag(1)
                                 
-                                Button(action: {
-                                    print("Spicy tapped")
-                                }) {
+                                Button(action: { print("Spicy tapped") }) {
                                     Text("Spicy")
                                         .font(.headline)
                                         .foregroundColor(.white)
@@ -101,8 +84,9 @@ struct HomeView: View {
                             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
                             .padding(.bottom, 50)
                         }
+                        .background(Color.clear) // ensure overlay is transparent
                         
-                        // NavigationLinks to ChatView and ProfileView.
+                        // Hidden NavigationLinks.
                         NavigationLink(destination: ChatView(pixCode: authManager.pixCode), isActive: $showChat) {
                             EmptyView()
                         }
@@ -113,8 +97,8 @@ struct HomeView: View {
                     .onAppear {
                         cameraManager.checkPermissions()
                         cameraManager.startSession()
+                        print("HomeView appeared. Camera session should be running.")
                     }
-                    // Show alert if either permission is denied.
                     .onChange(of: cameraManager.cameraPermissionDenied) { denied in
                         if denied { showPermissionAlert = true }
                     }
@@ -141,7 +125,6 @@ struct HomeView: View {
         }
     }
     
-    // Wait 5 seconds and then recheck permissions; if still denied, show the alert again.
     private func recheckPermissionsAfterDelay() {
         DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
             cameraManager.checkPermissions()
