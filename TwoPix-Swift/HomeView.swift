@@ -1,13 +1,12 @@
 import SwiftUI
 import AVFoundation
 
-// MARK: - HomeView with Carousel and Top Right Buttons
-
 struct HomeView: View {
     @StateObject private var cameraManager = CameraManager()
     @StateObject private var authManager = AuthManager() // Assumes you have an AuthManager in your project.
     @State private var showChat = false
     @State private var showProfile = false
+    @State private var showPermissionAlert = false
 
     var body: some View {
         Group {
@@ -115,6 +114,22 @@ struct HomeView: View {
                         cameraManager.checkPermissions()
                         cameraManager.startSession()
                     }
+                    // Show alert if either permission is denied.
+                    .onChange(of: cameraManager.cameraPermissionDenied) { denied in
+                        if denied { showPermissionAlert = true }
+                    }
+                    .onChange(of: cameraManager.microphonePermissionDenied) { denied in
+                        if denied { showPermissionAlert = true }
+                    }
+                    .alert(isPresented: $showPermissionAlert) {
+                        Alert(
+                            title: Text("Permissions Required"),
+                            message: Text("This app requires access to both the camera and microphone for full functionality. Please enable these permissions in Settings."),
+                            dismissButton: .cancel(Text("Cancel"), action: {
+                                recheckPermissionsAfterDelay()
+                            })
+                        )
+                    }
                 } else {
                     PixCodeView(fullName: authManager.fullName,
                                 username: authManager.username,
@@ -122,6 +137,16 @@ struct HomeView: View {
                 }
             } else {
                 AuthView()
+            }
+        }
+    }
+    
+    // Wait 5 seconds and then recheck permissions; if still denied, show the alert again.
+    private func recheckPermissionsAfterDelay() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+            cameraManager.checkPermissions()
+            if cameraManager.cameraPermissionDenied || cameraManager.microphonePermissionDenied {
+                showPermissionAlert = true
             }
         }
     }

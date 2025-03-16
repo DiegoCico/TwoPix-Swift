@@ -6,13 +6,19 @@ struct AuthView: View {
     @State private var password = ""
     @State private var errorMessage: String?
     @State private var isAuthenticated = false
-    @State private var showSignUp = false   // State variable to trigger navigation
+    @State private var showSignUp = false
 
     var body: some View {
         NavigationView {
             ZStack {
-                Color.black.ignoresSafeArea() // Dark background
-
+                // 1) Add our animated circles background
+                AnimatedBackgroundView()
+                
+                // 2) Then place a semi-transparent overlay to darken the background
+                Color.black.opacity(0.7)
+                    .ignoresSafeArea()
+                
+                // 3) Your existing UI
                 VStack(spacing: 20) {
                     // App Logo
                     Text("TwoPix")
@@ -46,7 +52,7 @@ struct AuthView: View {
 
                     // Sign Up Navigation Button
                     Button(action: {
-                        showSignUp = true  // Set state to trigger navigation
+                        showSignUp = true
                     }) {
                         Text("Don't have an account? Sign Up")
                             .foregroundColor(.white)
@@ -54,7 +60,7 @@ struct AuthView: View {
                     }
                     .padding()
 
-                    // Error Message Display
+                    // Error Message
                     if let errorMessage = errorMessage {
                         Text(errorMessage)
                             .foregroundColor(.red)
@@ -62,8 +68,8 @@ struct AuthView: View {
                     }
                 }
                 .padding()
-
-                // Invisible NavigationLink triggered by showSignUp state
+                
+                // Invisible NavigationLink triggered by showSignUp
                 NavigationLink(destination: SignUpView(), isActive: $showSignUp) {
                     EmptyView()
                 }

@@ -8,17 +8,21 @@ class CameraManager: NSObject, ObservableObject {
     private var currentInput: AVCaptureDeviceInput?
     private var currentCameraPosition: AVCaptureDevice.Position = .back
     private var isFlashOn: Bool = false
+
+    // Published properties to track permission status.
+    @Published var cameraPermissionDenied: Bool = false
+    @Published var microphonePermissionDenied: Bool = false
     
     // Check camera and microphone permissions.
     func checkPermissions() {
         AVCaptureDevice.requestAccess(for: .video) { granted in
-            if !granted {
-                print("Camera access denied")
+            DispatchQueue.main.async {
+                self.cameraPermissionDenied = !granted
             }
         }
         AVCaptureDevice.requestAccess(for: .audio) { granted in
-            if !granted {
-                print("Microphone access denied")
+            DispatchQueue.main.async {
+                self.microphonePermissionDenied = !granted
             }
         }
     }
