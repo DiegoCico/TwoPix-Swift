@@ -7,7 +7,7 @@ struct HomeView: View {
     @State private var showChat = false
     @State private var showProfile = false
     @State private var showPermissionAlert = false
-    @State private var showFrontFlashEffect = false  // Controls the persistent flash overlay
+    @State private var showFrontFlashEffect = false
 
     var body: some View {
         Group {
