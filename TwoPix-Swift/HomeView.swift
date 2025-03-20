@@ -3,7 +3,7 @@ import AVFoundation
 
 struct HomeView: View {
     @StateObject private var cameraManager = CameraManager()
-    @StateObject private var authManager = AuthManager() // Assumes AuthManager exists and is set up.
+    @StateObject private var authManager = AuthManager() // Assumes AuthManager exists.
     @State private var showChat = false
     @State private var showProfile = false
     @State private var showPermissionAlert = false
@@ -25,7 +25,7 @@ struct HomeView: View {
                                     }
                             )
                         
-                        // Front camera flash overlay using a radial gradient with a larger circle.
+                        // Front camera flash overlay.
                         if cameraManager.isFrontCamera && showFrontFlashEffect {
                             GeometryReader { geo in
                                 RadialGradient(
@@ -35,8 +35,8 @@ struct HomeView: View {
                                         .init(color: Color.white, location: 1.0)
                                     ]),
                                     center: .center,
-                                    startRadius: geo.size.width * 0.4,  // Increased start radius
-                                    endRadius: geo.size.width * 0.8     // Increased end radius for a larger circle
+                                    startRadius: geo.size.width * 0.4,
+                                    endRadius: geo.size.width * 0.8
                                 )
                                 .ignoresSafeArea()
                             }
@@ -68,11 +68,9 @@ struct HomeView: View {
                                     }
                                     Button(action: {
                                         if cameraManager.isFrontCamera {
-                                            // Toggle the persistent flash overlay.
                                             showFrontFlashEffect.toggle()
                                             print("Front flash effect toggled: \(showFrontFlashEffect)")
                                         } else {
-                                            // For the back camera, toggle the actual torch.
                                             cameraManager.toggleFlash()
                                         }
                                     }) {
@@ -98,10 +96,15 @@ struct HomeView: View {
                                 }
                                 .tag(0)
                                 
-                                Button(action: { print("Blank tapped") }) {
-                                    Text("")
+                                // The take photo button.
+                                Button(action: {
+                                    print("Take photo tapped")
+                                    cameraManager.capturePhoto()
+                                }) {
+                                    Image(systemName: "camera.circle.fill")
+                                        .resizable()
                                         .frame(width: 80, height: 80)
-                                        .background(Circle().fill(Color.gray))
+                                        .foregroundColor(.white)
                                 }
                                 .tag(1)
                                 
@@ -119,6 +122,20 @@ struct HomeView: View {
                             .padding(.bottom, 50)
                         }
                         .background(Color.clear)
+                        
+                        // Overlay for photo preview.
+                        if let capturedImage = cameraManager.capturedImage {
+                            PhotoPreviewOverlay(
+                                capturedImage: capturedImage,
+                                onCancel: { cameraManager.capturedImage = nil },
+                                onSend: {
+                                    // Process/send the photo as needed.
+                                    print("Send photo tapped")
+                                    cameraManager.capturedImage = nil
+                                }
+                            )
+                            .transition(.opacity)
+                        }
                         
                         // Hidden NavigationLinks.
                         NavigationLink(destination: ChatView(pixCode: authManager.pixCode), isActive: $showChat) {
@@ -159,7 +176,7 @@ struct HomeView: View {
         }
     }
     
-    // This function simulates checking permissions after a delay.
+    // Simulate rechecking permissions after a delay.
     private func recheckPermissionsAfterDelay() {
         DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
             cameraManager.checkPermissions()

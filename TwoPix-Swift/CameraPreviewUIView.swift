@@ -1,7 +1,6 @@
 import UIKit
 import AVFoundation
 
-// Custom UIView subclass whose main layer is AVCaptureVideoPreviewLayer.
 class CameraPreviewUIView: UIView {
     override class var layerClass: AnyClass {
         return AVCaptureVideoPreviewLayer.self

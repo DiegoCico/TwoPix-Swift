@@ -4,10 +4,11 @@ import SwiftUI
 class CameraManager: NSObject, ObservableObject {
     private let session = AVCaptureSession()
     
-    // Published properties for debugging and permission tracking.
+    // Published properties.
     @Published var previewLayer: AVCaptureVideoPreviewLayer?
     @Published var cameraPermissionDenied: Bool = false
     @Published var microphonePermissionDenied: Bool = false
+    @Published var capturedImage: UIImage? = nil  // Captured photo preview.
     
     // Expose the session so that the preview view can use it.
     var captureSession: AVCaptureSession {
@@ -15,11 +16,11 @@ class CameraManager: NSObject, ObservableObject {
     }
     
     private var currentInput: AVCaptureDeviceInput?
-    @Published var currentCameraPosition: AVCaptureDevice.Position = .back  // Now published
-    
+    @Published var currentCameraPosition: AVCaptureDevice.Position = .back
     private var isFlashOn: Bool = false
+    private var photoOutput: AVCapturePhotoOutput?  // Photo output for capturing images.
     
-    // Convenience computed property to check if the front camera is in use.
+    // Convenience computed property.
     var isFrontCamera: Bool {
         return currentCameraPosition == .front
     }
@@ -103,6 +104,16 @@ class CameraManager: NSObject, ObservableObject {
             print("Error creating audio input: \(error.localizedDescription)")
         }
         
+        // Configure photo output.
+        let photoOutput = AVCapturePhotoOutput()
+        if session.canAddOutput(photoOutput) {
+            session.addOutput(photoOutput)
+            self.photoOutput = photoOutput
+            print("Photo output added.")
+        } else {
+            print("Cannot add photo output.")
+        }
+        
         session.commitConfiguration()
     }
     
@@ -141,6 +152,33 @@ class CameraManager: NSObject, ObservableObject {
             print("Flash toggled. New state: \(isFlashOn)")
         } catch {
             print("Error toggling flash: \(error)")
+        }
+    }
+    
+    // MARK: - Photo Capture
+    func capturePhoto() {
+        guard let photoOutput = photoOutput else { return }
+        let settings = AVCapturePhotoSettings()
+        photoOutput.capturePhoto(with: settings, delegate: self)
+    }
+}
+
+// MARK: - AVCapturePhotoCaptureDelegate
+extension CameraManager: AVCapturePhotoCaptureDelegate {
+    func photoOutput(_ output: AVCapturePhotoOutput,
+                     didFinishProcessingPhoto photo: AVCapturePhoto,
+                     error: Error?) {
+        if let error = error {
+            print("Error capturing photo: \(error)")
+            return
+        }
+        guard let imageData = photo.fileDataRepresentation(),
+              let image = UIImage(data: imageData) else {
+            print("Could not get image data")
+            return
+        }
+        DispatchQueue.main.async {
+            self.capturedImage = image
         }
     }
 }
