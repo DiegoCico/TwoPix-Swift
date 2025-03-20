@@ -9,18 +9,31 @@ struct HomeView: View {
     @State private var showProfile = false
     @State private var showPermissionAlert = false
     @State private var showFrontFlashEffect = false
+    @State private var baseZoom: CGFloat = 1.0  // Stores the zoom factor before the current pinch gesture.
 
     var body: some View {
         if authManager.isAuthenticated {
             if authManager.isConnected {
                 ZStack {
-                    // Camera preview.
+                    // Camera preview with pinch gesture for zoom.
                     CameraPreviewView(cameraManager: cameraManager)
                         .ignoresSafeArea()
                         .gesture(
                             TapGesture(count: 2)
                                 .onEnded {
                                     cameraManager.flipCamera()
+                                }
+                        )
+                        .simultaneousGesture(
+                            MagnificationGesture()
+                                .onChanged { value in
+                                    // Multiply the baseZoom by the current magnification.
+                                    let newZoom = baseZoom * value
+                                    cameraManager.setZoomFactor(newZoom)
+                                }
+                                .onEnded { value in
+                                    // Update baseZoom to the final zoom factor.
+                                    baseZoom = cameraManager.currentZoomFactor()
                                 }
                         )
                     
@@ -160,6 +173,8 @@ struct HomeView: View {
                 .onAppear {
                     cameraManager.checkPermissions()
                     cameraManager.startSession()
+                    // Initialize baseZoom with current zoom factor.
+                    baseZoom = cameraManager.currentZoomFactor()
                 }
                 .onChange(of: cameraManager.cameraPermissionDenied) { denied in
                     if denied { showPermissionAlert = true }

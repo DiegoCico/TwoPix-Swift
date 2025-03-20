@@ -4,33 +4,33 @@ struct PhotoPreviewOverlay: View {
     let capturedImage: UIImage
     let onCancel: () -> Void
     let onSend: () -> Void
-    
+
     var body: some View {
         ZStack {
-            // Display the captured image full-screen.
+            // Full-screen captured image.
             Image(uiImage: capturedImage)
                 .resizable()
                 .scaledToFill()
                 .edgesIgnoringSafeArea(.all)
             
-            // Temporary visible background to ensure overlay is present.
+            // Debug yellow overlay to confirm the overlay is drawn.
             Color.yellow.opacity(0.3)
                 .edgesIgnoringSafeArea(.all)
-                .zIndex(0)
             
             VStack {
-                // Top row with cancel button.
+                // Top row: Cancel button.
                 HStack {
                     Spacer()
                     Button(action: onCancel) {
-                        Image(systemName: "xmark.circle.fill")
-                            .resizable()
-                            .frame(width: 60, height: 60)
+                        // Replace the system image with text "X" for debugging.
+                        Text("X")
+                            .font(.system(size: 40, weight: .bold))
                             .foregroundColor(.red)
+                            .frame(width: 60, height: 60)
                             .background(Color.white)
                             .clipShape(Circle())
                             .overlay(
-                                Circle().stroke(Color.blue, lineWidth: 4) // Debug border
+                                Circle().stroke(Color.blue, lineWidth: 2)
                             )
                     }
                     .padding(.top, 50)
@@ -39,7 +39,7 @@ struct PhotoPreviewOverlay: View {
                 
                 Spacer()
                 
-                // Bottom row with send button.
+                // Bottom row: Send button.
                 HStack {
                     Spacer()
                     Button(action: onSend) {
@@ -51,7 +51,7 @@ struct PhotoPreviewOverlay: View {
                             .cornerRadius(10)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 10)
-                                    .stroke(Color.green, lineWidth: 4) // Debug border
+                                    .stroke(Color.green, lineWidth: 2)
                             )
                     }
                     .padding(.bottom, 50)

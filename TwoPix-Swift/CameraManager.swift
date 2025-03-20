@@ -22,7 +22,7 @@ class CameraManager: NSObject, ObservableObject {
         return currentCameraPosition == .front
     }
     
-    // MARK: - Permissions
+    // MARK: - Permissions and Session Management
     func checkPermissions() {
         AVCaptureDevice.requestAccess(for: .video) { granted in
             DispatchQueue.main.async {
@@ -38,7 +38,6 @@ class CameraManager: NSObject, ObservableObject {
         }
     }
     
-    // MARK: - Session Management
     func startSession() {
         DispatchQueue.global(qos: .userInitiated).async {
             self.configureSession()
@@ -156,6 +155,25 @@ class CameraManager: NSObject, ObservableObject {
         guard let photoOutput = photoOutput else { return }
         let settings = AVCapturePhotoSettings()
         photoOutput.capturePhoto(with: settings, delegate: self)
+    }
+    
+    // MARK: - Zoom Control
+    func setZoomFactor(_ factor: CGFloat) {
+        guard let device = currentInput?.device else { return }
+        do {
+            try device.lockForConfiguration()
+            // Clamp the factor between 1.0 and device's max zoom.
+            let newFactor = max(1.0, min(factor, device.activeFormat.videoMaxZoomFactor))
+            device.videoZoomFactor = newFactor
+            device.unlockForConfiguration()
+            print("Zoom set to: \(newFactor)")
+        } catch {
+            print("Error setting zoom factor: \(error)")
+        }
+    }
+    
+    func currentZoomFactor() -> CGFloat {
+        return currentInput?.device.videoZoomFactor ?? 1.0
     }
 }
 
