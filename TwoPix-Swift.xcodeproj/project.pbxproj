@@ -24,9 +24,22 @@
 		83CAEB6C2D84ADD80012ED1D /* TwoPix-Swift.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "TwoPix-Swift.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		83ACA65B2D8BBD3E00853BE9 /* Exceptions for "TwoPix-Swift" folder in "TwoPix-Swift" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Untitled.swift,
+			);
+			target = 83CAEB6B2D84ADD80012ED1D /* TwoPix-Swift */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		83CAEB6E2D84ADD80012ED1D /* TwoPix-Swift */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				83ACA65B2D8BBD3E00853BE9 /* Exceptions for "TwoPix-Swift" folder in "TwoPix-Swift" target */,
+			);
 			path = "TwoPix-Swift";
 			sourceTree = "<group>";
 		};

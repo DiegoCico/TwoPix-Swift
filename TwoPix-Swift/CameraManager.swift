@@ -4,13 +4,11 @@ import SwiftUI
 class CameraManager: NSObject, ObservableObject {
     private let session = AVCaptureSession()
     
-    // Published properties.
     @Published var previewLayer: AVCaptureVideoPreviewLayer?
     @Published var cameraPermissionDenied: Bool = false
     @Published var microphonePermissionDenied: Bool = false
-    @Published var capturedImage: UIImage? = nil  // Captured photo preview.
+    @Published var capturedImage: UIImage? = nil  // Captured photo.
     
-    // Expose the session so that the preview view can use it.
     var captureSession: AVCaptureSession {
         return session
     }
@@ -18,9 +16,8 @@ class CameraManager: NSObject, ObservableObject {
     private var currentInput: AVCaptureDeviceInput?
     @Published var currentCameraPosition: AVCaptureDevice.Position = .back
     private var isFlashOn: Bool = false
-    private var photoOutput: AVCapturePhotoOutput?  // Photo output for capturing images.
+    private var photoOutput: AVCapturePhotoOutput?
     
-    // Convenience computed property.
     var isFrontCamera: Bool {
         return currentCameraPosition == .front
     }
@@ -53,7 +50,6 @@ class CameraManager: NSObject, ObservableObject {
                     connection.videoOrientation = .portrait
                 }
                 print("Session is running: \(self.session.isRunning)")
-                print("Session inputs count: \(self.session.inputs.count)")
             }
         }
     }
@@ -62,12 +58,12 @@ class CameraManager: NSObject, ObservableObject {
         session.beginConfiguration()
         session.sessionPreset = .photo
         
-        // Remove any existing inputs.
+        // Remove existing inputs.
         for input in session.inputs {
             session.removeInput(input)
         }
         
-        // Configure video input.
+        // Video input.
         guard let videoDevice = getCamera(for: currentCameraPosition) else {
             print("No video device found.")
             session.commitConfiguration()
@@ -86,7 +82,7 @@ class CameraManager: NSObject, ObservableObject {
             print("Error creating video input: \(error.localizedDescription)")
         }
         
-        // Configure audio input.
+        // Audio input.
         guard let audioDevice = AVCaptureDevice.default(for: .audio) else {
             print("No audio device found.")
             session.commitConfiguration()
@@ -104,7 +100,7 @@ class CameraManager: NSObject, ObservableObject {
             print("Error creating audio input: \(error.localizedDescription)")
         }
         
-        // Configure photo output.
+        // Photo output.
         let photoOutput = AVCapturePhotoOutput()
         if session.canAddOutput(photoOutput) {
             session.addOutput(photoOutput)
@@ -163,7 +159,6 @@ class CameraManager: NSObject, ObservableObject {
     }
 }
 
-// MARK: - AVCapturePhotoCaptureDelegate
 extension CameraManager: AVCapturePhotoCaptureDelegate {
     func photoOutput(_ output: AVCapturePhotoOutput,
                      didFinishProcessingPhoto photo: AVCapturePhoto,

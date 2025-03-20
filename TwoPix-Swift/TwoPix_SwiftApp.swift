@@ -1,9 +1,9 @@
 import SwiftUI
-import Firebase
+import FirebaseCore
 
 @main
 struct TwoPixApp: App {
-    @StateObject private var authManager = AuthManager()
+    @StateObject private var authManager = AuthManager() // This uses the single definition from AuthManager.swift.
     
     init() {
         FirebaseApp.configure()
@@ -11,7 +11,6 @@ struct TwoPixApp: App {
     
     var body: some Scene {
         WindowGroup {
-            // If the user is authenticated, show HomeView; if not, show AuthView.
             if authManager.isAuthenticated {
                 NavigationView {
                     HomeView()
