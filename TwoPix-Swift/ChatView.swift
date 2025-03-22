@@ -2,7 +2,7 @@ import SwiftUI
 import FirebaseFirestore
 import FirebaseAuth
 
-// Updated ChatMessage model to include photoURL, messageType, timestamp, and sender.
+// ChatMessage model with text, photoURL, messageType, timestamp, and sender.
 struct ChatMessage: Identifiable {
     var id: String
     var text: String?
@@ -35,36 +35,33 @@ struct ChatView: View {
     @State private var showImagePicker = false
     @State private var selectedImage: UIImage?
     
+    // For full screen photo viewing.
+    @State private var fullScreenPhotoURL: String? = nil
+    @State private var isFullScreenPresented: Bool = false
+    
     var body: some View {
         NavigationView {
             VStack {
-                // Display chat messages.
-                List(messages) { message in
-                    HStack(alignment: .top) {
-                        if message.messageType == "photo", let photoURL = message.photoURL, let url = URL(string: photoURL) {
-                            AsyncImage(url: url) { phase in
-                                if let image = phase.image {
-                                    image
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(maxWidth: 200, maxHeight: 200)
-                                } else if phase.error != nil {
-                                    Text("Error loading image")
-                                } else {
-                                    ProgressView()
-                                }
+                ScrollViewReader { scrollViewProxy in
+                    List(messages) { message in
+                        MessageBubble(message: message, onPhotoTap: message.messageType == "photo" ? {
+                            if let url = message.photoURL {
+                                fullScreenPhotoURL = url
+                                isFullScreenPresented = true
                             }
-                        } else if message.messageType == "text", let text = message.text {
-                            Text(text)
-                                .padding(8)
-                                .background(Color.gray.opacity(0.2))
-                                .cornerRadius(8)
-                        }
-                        Spacer()
+                        } : nil)
+                        .listRowSeparator(.hidden)
                     }
+                    .listStyle(PlainListStyle())
+                    .onChange(of: messages.count) { _ in
+                        if let lastMessage = messages.last {
+                            withAnimation {
+                                scrollViewProxy.scrollTo(lastMessage.id, anchor: .bottom)
+                            }
+                        }
+                    }
+                    .onAppear(perform: loadMessages)
                 }
-                .listStyle(PlainListStyle())
-                .onAppear(perform: loadMessages)
                 
                 // Chat input area.
                 HStack {
@@ -92,10 +89,18 @@ struct ChatView: View {
             }) {
                 ImagePicker(selectedImage: $selectedImage)
             }
+            // Full screen cover for the tapped photo.
+            .fullScreenCover(isPresented: $isFullScreenPresented, onDismiss: {
+                fullScreenPhotoURL = nil
+            }) {
+                if let url = fullScreenPhotoURL {
+                    FullScreenImageView(photoURL: url, isPresented: $isFullScreenPresented)
+                }
+            }
         }
     }
     
-    // Listen to real-time updates on the chats subcollection.
+    // Load messages from Firestore in real time.
     private func loadMessages() {
         let db = Firestore.firestore()
         db.collection("pixcodes")
@@ -133,29 +138,93 @@ struct ChatView: View {
         newMessage = ""
     }
     
-    // Upload the photo and then create a chat message with the photo URL.
+    // Upload photo and add it as a chat message.
     private func sendPhotoMessage(image: UIImage) {
         FirebasePhotoUploader.shared.uploadPhoto(image: image, pixCode: pixCode, photoTag: "ChatPhoto") { urlString, error in
             if let error = error {
                 print("Error uploading photo: \(error.localizedDescription)")
-                return
-            }
-            guard let photoURL = urlString else { return }
-            let db = Firestore.firestore()
-            let data: [String: Any] = [
-                "photoURL": photoURL,
-                "timestamp": Timestamp(date: Date()),
-                "sender": Auth.auth().currentUser?.uid ?? "unknown",
-                "messageType": "photo"
-            ]
-            db.collection("pixcodes")
-                .document(pixCode)
-                .collection("chats")
-                .addDocument(data: data) { error in
-                    if let error = error {
-                        print("Error sending photo message: \(error.localizedDescription)")
+            } else if let photoURL = urlString {
+                let db = Firestore.firestore()
+                let data: [String: Any] = [
+                    "photoURL": photoURL,
+                    "timestamp": Timestamp(date: Date()),
+                    "sender": Auth.auth().currentUser?.uid ?? "unknown",
+                    "messageType": "photo"
+                ]
+                db.collection("pixcodes")
+                    .document(pixCode)
+                    .collection("chats")
+                    .addDocument(data: data) { error in
+                        if let error = error {
+                            print("Error adding photo message to chat: \(error.localizedDescription)")
+                        } else {
+                            print("Photo message added to chat successfully")
+                        }
                     }
+                DispatchQueue.main.async {
+                    selectedImage = nil
                 }
+            }
+        }
+    }
+}
+
+// Chat bubble view for individual messages.
+struct MessageBubble: View {
+    let message: ChatMessage
+    var onPhotoTap: (() -> Void)? = nil
+    var isCurrentUser: Bool {
+        message.sender == Auth.auth().currentUser?.uid
+    }
+    
+    var body: some View {
+        HStack {
+            if isCurrentUser {
+                Spacer()
+                bubbleContent
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(12)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+            } else {
+                bubbleContent
+                    .background(Color.gray.opacity(0.2))
+                    .foregroundColor(.black)
+                    .cornerRadius(12)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                Spacer()
+            }
+        }
+        .id(message.id)
+    }
+    
+    @ViewBuilder
+    var bubbleContent: some View {
+        if message.messageType == "text" {
+            Text(message.text ?? "")
+                .padding(10)
+        } else if message.messageType == "photo",
+                  let photoURL = message.photoURL,
+                  let url = URL(string: photoURL) {
+            AsyncImage(url: url) { phase in
+                if let image = phase.image {
+                    image
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxWidth: 200, maxHeight: 200)
+                        .onTapGesture {
+                            onPhotoTap?()
+                        }
+                } else if phase.error != nil {
+                    Text("Error loading image")
+                        .padding(10)
+                } else {
+                    ProgressView()
+                        .padding(10)
+                }
+            }
         }
     }
 }

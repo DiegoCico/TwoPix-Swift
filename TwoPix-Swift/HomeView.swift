@@ -1,5 +1,7 @@
 import SwiftUI
 import AVFoundation
+import FirebaseFirestore
+import FirebaseAuth
 
 struct HomeView: View {
     @StateObject private var cameraManager = CameraManager()
@@ -11,7 +13,7 @@ struct HomeView: View {
     @State private var showFrontFlashEffect = false
     @State private var baseZoom: CGFloat = 1.0  // Stores the zoom factor before the current pinch gesture.
     
-    // New state variable to hold the current photo tag ("FitCheck", "Normal", or "Spicy")
+    // Current photo tag ("FitCheck", "Normal", or "Spicy")
     @State private var currentPhotoTag: String = "Normal"
 
     var body: some View {
@@ -30,12 +32,14 @@ struct HomeView: View {
                         .simultaneousGesture(
                             MagnificationGesture()
                                 .onChanged { value in
-                                    // Multiply the baseZoom by the current magnification.
                                     let newZoom = baseZoom * value
-                                    cameraManager.setZoomFactor(newZoom)
+                                    if newZoom.isFinite {
+                                        cameraManager.setZoomFactor(newZoom)
+                                    } else {
+                                        print("Invalid zoom value encountered.")
+                                    }
                                 }
                                 .onEnded { _ in
-                                    // Update baseZoom to the final zoom factor.
                                     baseZoom = cameraManager.currentZoomFactor()
                                 }
                         )
@@ -151,6 +155,7 @@ struct HomeView: View {
                             capturedImage: capturedImage,
                             onCancel: { cameraManager.capturedImage = nil },
                             onSend: {
+                                // Upload the photo and then add a chat message.
                                 FirebasePhotoUploader.shared.uploadPhoto(
                                     image: capturedImage,
                                     pixCode: authManager.pixCode,
@@ -158,8 +163,25 @@ struct HomeView: View {
                                 ) { urlString, error in
                                     if let error = error {
                                         print("Error uploading photo: \(error.localizedDescription)")
-                                    } else {
-                                        print("Photo uploaded successfully: \(urlString ?? "No URL")")
+                                    } else if let photoURL = urlString {
+                                        // Add the photo as a chat message.
+                                        let db = Firestore.firestore()
+                                        let data: [String: Any] = [
+                                            "photoURL": photoURL,
+                                            "timestamp": Timestamp(date: Date()),
+                                            "sender": Auth.auth().currentUser?.uid ?? "unknown",
+                                            "messageType": "photo"
+                                        ]
+                                        db.collection("pixcodes")
+                                            .document(authManager.pixCode)
+                                            .collection("chats")
+                                            .addDocument(data: data) { error in
+                                                if let error = error {
+                                                    print("Error adding photo message to chat: \(error.localizedDescription)")
+                                                } else {
+                                                    print("Photo message added to chat successfully")
+                                                }
+                                            }
                                         DispatchQueue.main.async {
                                             cameraManager.capturedImage = nil
                                         }
@@ -186,7 +208,6 @@ struct HomeView: View {
                 .onAppear {
                     cameraManager.checkPermissions()
                     cameraManager.startSession()
-                    // Initialize baseZoom with current zoom factor.
                     baseZoom = cameraManager.currentZoomFactor()
                 }
                 .onChange(of: cameraManager.cameraPermissionDenied) { denied in

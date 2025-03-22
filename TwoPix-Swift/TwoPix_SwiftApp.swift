@@ -3,11 +3,12 @@ import FirebaseCore
 
 @main
 struct TwoPixApp: App {
-    @StateObject private var authManager = AuthManager() // This uses the single definition from AuthManager.swift.
+    @StateObject private var authManager = AuthManager() // Single definition from AuthManager.swift.
     
     init() {
         FirebaseApp.configure()
         disableInputAssistant()
+        // Ensure that any computed layout values in your views are valid (not NaN) to avoid CoreGraphics warnings.
     }
     
     var body: some Scene {
