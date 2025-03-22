@@ -1,5 +1,6 @@
 import FirebaseAuth
 import FirebaseFirestore
+import SwiftUI
 
 class AuthManager: ObservableObject {
     @Published var isAuthenticated = false

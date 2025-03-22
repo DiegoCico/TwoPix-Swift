@@ -7,6 +7,7 @@ struct TwoPixApp: App {
     
     init() {
         FirebaseApp.configure()
+        disableInputAssistant()
     }
     
     var body: some Scene {
@@ -22,4 +23,11 @@ struct TwoPixApp: App {
             }
         }
     }
+}
+
+func disableInputAssistant() {
+    UITextField.appearance().inputAssistantItem.leadingBarButtonGroups = []
+    UITextField.appearance().inputAssistantItem.trailingBarButtonGroups = []
+    UITextView.appearance().inputAssistantItem.leadingBarButtonGroups = []
+    UITextView.appearance().inputAssistantItem.trailingBarButtonGroups = []
 }

@@ -151,16 +151,15 @@ struct HomeView: View {
                             capturedImage: capturedImage,
                             onCancel: { cameraManager.capturedImage = nil },
                             onSend: {
-                                // Call Firebase uploader with the photoTag.
                                 FirebasePhotoUploader.shared.uploadPhoto(
                                     image: capturedImage,
                                     pixCode: authManager.pixCode,
                                     photoTag: currentPhotoTag
-                                ) { error in
+                                ) { urlString, error in
                                     if let error = error {
                                         print("Error uploading photo: \(error.localizedDescription)")
                                     } else {
-                                        print("Photo uploaded successfully!")
+                                        print("Photo uploaded successfully: \(urlString ?? "No URL")")
                                         DispatchQueue.main.async {
                                             cameraManager.capturedImage = nil
                                         }
