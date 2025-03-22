@@ -10,6 +10,9 @@ struct HomeView: View {
     @State private var showPermissionAlert = false
     @State private var showFrontFlashEffect = false
     @State private var baseZoom: CGFloat = 1.0  // Stores the zoom factor before the current pinch gesture.
+    
+    // New state variable to hold the current photo tag ("FitCheck", "Normal", or "Spicy")
+    @State private var currentPhotoTag: String = "Normal"
 
     var body: some View {
         if authManager.isAuthenticated {
@@ -31,7 +34,7 @@ struct HomeView: View {
                                     let newZoom = baseZoom * value
                                     cameraManager.setZoomFactor(newZoom)
                                 }
-                                .onEnded { value in
+                                .onEnded { _ in
                                     // Update baseZoom to the final zoom factor.
                                     baseZoom = cameraManager.currentZoomFactor()
                                 }
@@ -98,7 +101,11 @@ struct HomeView: View {
                         
                         // Bottom carousel buttons.
                         TabView(selection: .constant(1)) {
-                            Button(action: { print("FitCheck tapped") }) {
+                            // FitCheck button.
+                            Button(action: {
+                                currentPhotoTag = "FitCheck"
+                                cameraManager.capturePhoto()
+                            }) {
                                 Text("FitCheck")
                                     .font(.headline)
                                     .foregroundColor(.white)
@@ -107,8 +114,9 @@ struct HomeView: View {
                             }
                             .tag(0)
                             
-                            // Take photo button.
+                            // Normal (camera) button.
                             Button(action: {
+                                currentPhotoTag = "Normal"
                                 cameraManager.capturePhoto()
                             }) {
                                 Image(systemName: "camera.circle.fill")
@@ -118,7 +126,11 @@ struct HomeView: View {
                             }
                             .tag(1)
                             
-                            Button(action: { print("Spicy tapped") }) {
+                            // Spicy button.
+                            Button(action: {
+                                currentPhotoTag = "Spicy"
+                                cameraManager.capturePhoto()
+                            }) {
                                 Text("Spicy")
                                     .font(.headline)
                                     .foregroundColor(.white)
@@ -139,9 +151,11 @@ struct HomeView: View {
                             capturedImage: capturedImage,
                             onCancel: { cameraManager.capturedImage = nil },
                             onSend: {
+                                // Call Firebase uploader with the photoTag.
                                 FirebasePhotoUploader.shared.uploadPhoto(
                                     image: capturedImage,
-                                    pixCode: authManager.pixCode
+                                    pixCode: authManager.pixCode,
+                                    photoTag: currentPhotoTag
                                 ) { error in
                                     if let error = error {
                                         print("Error uploading photo: \(error.localizedDescription)")

@@ -9,7 +9,8 @@ class FirebasePhotoUploader {
     private let storage = Storage.storage()
     private let firestore = Firestore.firestore()
     
-    func uploadPhoto(image: UIImage, pixCode: String, completion: @escaping (Error?) -> Void) {
+    // Updated method signature with photoTag.
+    func uploadPhoto(image: UIImage, pixCode: String, photoTag: String, completion: @escaping (Error?) -> Void) {
         // Convert the image to JPEG data.
         guard let imageData = image.jpegData(compressionQuality: 0.8) else {
             completion(NSError(domain: "ImageConversion", code: 0, userInfo: [NSLocalizedDescriptionKey: "Unable to convert image to JPEG."]))
@@ -49,9 +50,10 @@ class FirebasePhotoUploader {
                 dateFormatter.dateFormat = "yyyy-MM-dd"
                 let dateString = dateFormatter.string(from: Date())
                 
-                // Prepare the photo metadata.
+                // Prepare the photo metadata including the photoTag.
                 let photoData: [String: Any] = [
                     "pixCode": pixCode,
+                    "photoTag": photoTag,
                     "imageUrl": downloadURL.absoluteString,
                     "timestamp": timestamp,
                     "date": dateString

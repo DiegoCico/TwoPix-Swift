@@ -19,3 +19,4 @@ struct CameraPreviewView: UIViewRepresentable {
         print("updateUIView: updated frame: \(uiView.bounds)")
     }
 }
+
