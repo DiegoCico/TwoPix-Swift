@@ -110,3 +110,8 @@ Supports:
 
 > Planning to showcase the animated UI, Pix Code screen, and swipe-to-send preview overlay.
 
+## 🔒 License
+
+This project is licensed under the [Apache License 2.0](./LICENSE).
+
+> ❗ **Notice:** You may not clone, redistribute, or republish this app (TwoPix) in its entirety without prior written permission. Reuse of small code snippets or patterns is allowed under the license, but recreating the full app, UI/UX, or branding is strictly prohibited.
