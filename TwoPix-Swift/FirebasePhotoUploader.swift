@@ -9,7 +9,6 @@ class FirebasePhotoUploader {
     private let storage = Storage.storage()
     private let firestore = Firestore.firestore()
     
-    // Updated to return the download URL string upon success.
     func uploadPhoto(image: UIImage, pixCode: String, photoTag: String, completion: @escaping (String?, Error?) -> Void) {
         // Convert the image to JPEG data.
         guard let imageData = image.jpegData(compressionQuality: 0.8) else {
@@ -44,22 +43,19 @@ class FirebasePhotoUploader {
                     return
                 }
                 
-                // Get current timestamp and a human‑readable date.
-                let timestamp = Date().timeIntervalSince1970
-                let dateFormatter = DateFormatter()
-                dateFormatter.dateFormat = "yyyy-MM-dd"
-                let dateString = dateFormatter.string(from: Date())
+                // Print out the photo URL for debugging.
+                print("Photo URL: \(downloadURL.absoluteString)")
                 
-                // Prepare the photo metadata including the photoTag.
+                // Prepare the photo metadata using "photoURL" as key to match ChatMessage.
                 let photoData: [String: Any] = [
                     "pixCode": pixCode,
                     "photoTag": photoTag,
-                    "imageUrl": downloadURL.absoluteString,
-                    "timestamp": timestamp,
-                    "date": dateString
+                    "photoURL": downloadURL.absoluteString,
+                    "timestamp": Date().timeIntervalSince1970,
+                    "date": DateFormatter.localizedString(from: Date(), dateStyle: .short, timeStyle: .none)
                 ]
                 
-                // Save the metadata in Firestore under the top‑level "photos" collection.
+                // Save the metadata in Firestore under the top-level "photos" collection.
                 self.firestore.collection("photos").document(photoID).setData(photoData) { error in
                     if let error = error {
                         completion(nil, error)

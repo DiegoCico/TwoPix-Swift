@@ -3,9 +3,10 @@ import AVFoundation
 import FirebaseFirestore
 import FirebaseAuth
 
+// MARK: - HomeView
 struct HomeView: View {
-    @StateObject private var cameraManager = CameraManager()
-    @EnvironmentObject var authManager: AuthManager
+    @StateObject private var cameraManager = CameraManager() // Assume defined elsewhere.
+    @EnvironmentObject var authManager: AuthManager          // Assume defined elsewhere.
 
     @State private var showChat = false
     @State private var showProfile = false
@@ -151,13 +152,15 @@ struct HomeView: View {
                     
                     // Photo preview overlay.
                     if let capturedImage = cameraManager.capturedImage {
+                        // If using the front camera, unmirror the image.
+                        let fixedImage = cameraManager.isFrontCamera ? capturedImage.unmirror() : capturedImage
                         PhotoPreviewOverlay(
-                            capturedImage: capturedImage,
+                            capturedImage: fixedImage,
                             onCancel: { cameraManager.capturedImage = nil },
                             onSend: {
-                                // Upload the photo and then add a chat message.
+                                // Upload the photo and add a chat message.
                                 FirebasePhotoUploader.shared.uploadPhoto(
-                                    image: capturedImage,
+                                    image: fixedImage,
                                     pixCode: authManager.pixCode,
                                     photoTag: currentPhotoTag
                                 ) { urlString, error in

@@ -3,73 +3,55 @@ import SwiftUI
 struct FullScreenImageView: View {
     let photoURL: String
     @Binding var isPresented: Bool
-    @State private var dragOffset = CGSize.zero
-    private let dismissThreshold: CGFloat = 150
+
+    @State private var image: UIImage? = nil
+    @State private var isLoading = true
 
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
             
-            AsyncImage(url: URL(string: photoURL)) { phase in
-                switch phase {
-                case .empty:
-                    VStack {
-                        ProgressView("Loading...")
-                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                        Text("Loading image from: \(photoURL)")
-                            .foregroundColor(.white)
-                            .font(.caption)
-                            .padding(.top, 8)
-                    }
-                case .success(let image):
-                    image
-                        .resizable()
-                        .scaledToFit()
-                        .offset(y: dragOffset.height)
-                        .gesture(
-                            DragGesture()
-                                .onChanged { value in
-                                    dragOffset = value.translation
-                                }
-                                .onEnded { _ in
-                                    if dragOffset.height > dismissThreshold {
-                                        withAnimation {
-                                            isPresented = false
-                                        }
-                                    } else {
-                                        withAnimation {
-                                            dragOffset = .zero
-                                        }
-                                    }
-                                }
-                        )
-                case .failure(let error):
-                    VStack {
-                        Text("Failed to load image.")
-                            .foregroundColor(.white)
-                        Text(error.localizedDescription)
-                            .foregroundColor(.white)
-                            .multilineTextAlignment(.center)
-                            .padding()
-                        Text("URL: \(photoURL)")
-                            .foregroundColor(.white)
-                            .font(.caption)
-                    }
-                @unknown default:
-                    EmptyView()
-                }
+            if let image = image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+            } else if isLoading {
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+            } else {
+                Text("Failed to load image")
+                    .foregroundColor(.white)
             }
         }
-        .transition(.move(edge: .bottom))
-        .onAppear {
-            print("FullScreenImageView loading URL: \(photoURL)")
-        }
+        .onAppear(perform: loadImage)
+        .onTapGesture { isPresented = false }
     }
-}
-
-struct FullScreenImageView_Previews: PreviewProvider {
-    @State static var isPresented = true
-    static var previews: some View {
-        FullScreenImageView(photoURL: "https://via.placeholder.com/300", isPresented: $isPresented)
+    
+    private func loadImage() {
+        guard let url = URL(string: photoURL) else {
+            print("Invalid URL: \(photoURL)")
+            isLoading = false
+            return
+        }
+        print("Attempting to load image from URL: \(url)")
+        URLSession.shared.dataTask(with: url) { data, response, error in
+            DispatchQueue.main.async {
+                self.isLoading = false
+                if let error = error {
+                    print("Error loading image: \(error.localizedDescription)")
+                }
+                if let data = data {
+                    print("Received image data: \(data.count) bytes")
+                    if let uiImage = UIImage(data: data) {
+                        print("Image successfully loaded")
+                        self.image = uiImage
+                    } else {
+                        print("Failed to convert data to UIImage")
+                    }
+                } else {
+                    print("No image data received from URL: \(url)")
+                }
+            }
+        }.resume()
     }
 }
