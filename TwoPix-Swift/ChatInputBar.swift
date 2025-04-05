@@ -11,12 +11,12 @@ struct ChatInputBar: View {
                 Image(systemName: "photo.fill")
                     .font(.system(size: 22))
             }
-
+            
             TextField("Message...", text: $message)
                 .padding(10)
                 .background(Color(.systemGray6))
                 .cornerRadius(16)
-
+            
             Button(action: onSend) {
                 Image(systemName: "paperplane.fill")
                     .font(.system(size: 22))

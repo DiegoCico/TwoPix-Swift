@@ -2,39 +2,11 @@ import SwiftUI
 import FirebaseFirestore
 import FirebaseAuth
 
-// Make String conform to Identifiable so we can use it as an item in fullScreenCover.
+// Extend String to conform to Identifiable for fullScreenCover.
 extension String: Identifiable {
     public var id: String { self }
 }
 
-// MARK: - ChatMessage Model
-struct ChatMessage: Identifiable {
-    var id: String
-    var text: String?
-    var photoURL: String?
-    var messageType: String
-    var timestamp: Date
-    var sender: String
-    var seen: Bool
-
-    init?(document: DocumentSnapshot) {
-        let data = document.data()
-        guard let timestamp = data?["timestamp"] as? Timestamp,
-              let sender = data?["sender"] as? String,
-              let messageType = data?["messageType"] as? String else {
-            return nil
-        }
-        self.id = document.documentID
-        self.text = data?["text"] as? String
-        self.photoURL = data?["photoURL"] as? String
-        self.timestamp = timestamp.dateValue()
-        self.sender = sender
-        self.messageType = messageType
-        self.seen = data?["seen"] as? Bool ?? false
-    }
-}
-
-// MARK: - ChatView
 struct ChatView: View {
     let pixCode: String
 
@@ -42,7 +14,7 @@ struct ChatView: View {
     @State private var newMessage = ""
     @State private var showImagePicker = false
     @State private var selectedImage: UIImage?
-    // Use an optional String as the item for the fullScreenCover.
+    // An optional String triggers the fullScreenCover.
     @State private var fullScreenPhotoURL: String? = nil
 
     var body: some View {
@@ -93,13 +65,13 @@ struct ChatView: View {
         }) {
             ImagePicker(selectedImage: $selectedImage)
         }
-        // Use the item-based full screen cover. When fullScreenPhotoURL is non-nil, the view is presented.
         .fullScreenCover(item: $fullScreenPhotoURL) { url in
             FullScreenImageView(photoURL: url)
         }
     }
     
     // MARK: - Helper Functions
+    
     private func loadMessages() {
         let db = Firestore.firestore()
         db.collection("pixcodes")
@@ -137,11 +109,14 @@ struct ChatView: View {
         FirebasePhotoUploader.shared.uploadPhoto(image: image, pixCode: pixCode, photoTag: "ChatPhoto") { urlString, error in
             if let url = urlString {
                 let db = Firestore.firestore()
+                // Change this value depending on the type of photo being sent.
+                // For example, use "FitCheck" if the user selected a FitCheck image.
+                let messageType = "spicy" // or "FitCheck", "photo", or "normal"
                 let data: [String: Any] = [
                     "photoURL": url,
+                    "messageType": messageType,
                     "timestamp": Timestamp(date: Date()),
                     "sender": Auth.auth().currentUser?.uid ?? "unknown",
-                    "messageType": "photo",
                     "seen": false
                 ]
                 db.collection("pixcodes")

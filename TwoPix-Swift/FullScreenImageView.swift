@@ -4,7 +4,7 @@ struct FullScreenImageView: View {
     let photoURL: String
     @Environment(\.dismiss) var dismiss
 
-    // State variables to track zoom scale and panning offset.
+    // State for pinch-to-zoom and panning.
     @State private var scale: CGFloat = 1.0
     @State private var lastScale: CGFloat = 1.0
     @State private var offset: CGSize = .zero
@@ -28,13 +28,10 @@ struct FullScreenImageView: View {
                         image
                             .resizable()
                             .scaledToFit()
-                            // Apply zoom and pan effects.
                             .scaleEffect(scale)
                             .offset(x: offset.width + dragOffset.width,
                                     y: offset.height + dragOffset.height)
-                            // Allow pinch-to-zoom.
                             .gesture(magnificationGesture())
-                            // Allow panning the zoomed image.
                             .gesture(panGesture())
                             .onAppear { print("AsyncImage: Image loaded successfully.") }
                     case .failure(let error):
@@ -55,7 +52,7 @@ struct FullScreenImageView: View {
                 }
             }
         }
-        // Attach a swipe down gesture to dismiss the view.
+        // Attach a swipe-down gesture to dismiss.
         .gesture(swipeDownToDismiss())
         .onAppear {
             print("FullScreenImageView initialized with photoURL: \(photoURL)")
@@ -63,8 +60,7 @@ struct FullScreenImageView: View {
     }
 
     // MARK: - Gestures
-
-    // Magnification (pinch) gesture for zooming.
+    
     private func magnificationGesture() -> some Gesture {
         MagnificationGesture()
             .onChanged { value in
@@ -74,8 +70,7 @@ struct FullScreenImageView: View {
                 lastScale = scale
             }
     }
-
-    // Drag gesture for panning the image.
+    
     private func panGesture() -> some Gesture {
         DragGesture()
             .onChanged { value in
@@ -87,12 +82,10 @@ struct FullScreenImageView: View {
                 dragOffset = .zero
             }
     }
-
-    // Drag gesture for swiping down to dismiss.
+    
     private func swipeDownToDismiss() -> some Gesture {
         DragGesture(minimumDistance: 30)
             .onEnded { value in
-                // Check if the gesture is predominantly a downward swipe.
                 if abs(value.translation.width) < 50 && value.translation.height > 100 {
                     print("Swipe down detected. Dismissing view.")
                     dismiss()
