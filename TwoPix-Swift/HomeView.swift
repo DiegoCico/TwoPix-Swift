@@ -158,7 +158,6 @@ struct HomeView: View {
                             capturedImage: fixedImage,
                             onCancel: { cameraManager.capturedImage = nil },
                             onSend: {
-                                // Upload the photo and add a chat message.
                                 FirebasePhotoUploader.shared.uploadPhoto(
                                     image: fixedImage,
                                     pixCode: authManager.pixCode,
@@ -167,13 +166,18 @@ struct HomeView: View {
                                     if let error = error {
                                         print("Error uploading photo: \(error.localizedDescription)")
                                     } else if let photoURL = urlString {
-                                        // Add the photo as a chat message.
+                                        // Generate a random notification message based on the current photo tag.
+                                        let notificationMessage = self.randomNotificationMessage(for: currentPhotoTag, senderName: authManager.fullName)
+                                        
+                                        // Add the photo as a chat message with the notification message.
                                         let db = Firestore.firestore()
                                         let data: [String: Any] = [
                                             "photoURL": photoURL,
                                             "timestamp": Timestamp(date: Date()),
                                             "sender": Auth.auth().currentUser?.uid ?? "unknown",
-                                            "messageType": "photo"
+                                            "messageType": "photo",
+                                            "notificationMessage": notificationMessage,
+                                            "photoTag": currentPhotoTag
                                         ]
                                         db.collection("pixcodes")
                                             .document(authManager.pixCode)
@@ -246,6 +250,43 @@ struct HomeView: View {
             if cameraManager.cameraPermissionDenied || cameraManager.microphonePermissionDenied {
                 showPermissionAlert = true
             }
+        }
+    }
+    
+    // MARK: - Notification Message Generator
+    /// Returns a random notification message based on the photo tag.
+    private func randomNotificationMessage(for tag: String, senderName: String) -> String {
+        switch tag {
+        case "Normal":
+            let options = [
+                "You got a pix!",
+                "You received a pix from \(senderName)!",
+                "Pix got sent!",
+                "Sent you a pix!",
+                "A fresh pix just landed!"
+            ]
+            return options.randomElement() ?? "You got a pix!"
+        case "FitCheck":
+            let options = [
+                "Fit check sent!",
+                "Sent you a fit, hbu?",
+                "FITCHECK!",
+                "Your fit check is on point!",
+                "Lookin' sharp, fit check!"
+            ]
+            return options.randomElement() ?? "FITCHECK!"
+        case "Spicy":
+            let options = [
+                "oooOoo ;)",
+                "Spicy time!",
+                "I want your pix ;)",
+                "Hot stuff coming your way!",
+                "Spice it up!",
+                "Clothes off Pix On!"
+            ]
+            return options.randomElement() ?? "Spicy time!"
+        default:
+            return "Pix sent!"
         }
     }
 }
