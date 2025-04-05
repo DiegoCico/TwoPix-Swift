@@ -2,6 +2,12 @@ import SwiftUI
 import FirebaseFirestore
 import FirebaseAuth
 
+// Make String conform to Identifiable so we can use it as an item in fullScreenCover.
+extension String: Identifiable {
+    public var id: String { self }
+}
+
+// MARK: - ChatMessage Model
 struct ChatMessage: Identifiable {
     var id: String
     var text: String?
@@ -28,6 +34,7 @@ struct ChatMessage: Identifiable {
     }
 }
 
+// MARK: - ChatView
 struct ChatView: View {
     let pixCode: String
 
@@ -35,8 +42,8 @@ struct ChatView: View {
     @State private var newMessage = ""
     @State private var showImagePicker = false
     @State private var selectedImage: UIImage?
+    // Use an optional String as the item for the fullScreenCover.
     @State private var fullScreenPhotoURL: String? = nil
-    @State private var isFullScreenPresented = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -47,8 +54,8 @@ struct ChatView: View {
                             MessageBubble(
                                 message: message,
                                 onPhotoTap: {
+                                    print("Tapped photo, URL: \(message.photoURL ?? "nil")")
                                     fullScreenPhotoURL = message.photoURL
-                                    isFullScreenPresented = true
                                 }
                             )
                             .onAppear {
@@ -86,13 +93,13 @@ struct ChatView: View {
         }) {
             ImagePicker(selectedImage: $selectedImage)
         }
-        .fullScreenCover(isPresented: $isFullScreenPresented) {
-            if let url = fullScreenPhotoURL {
-                FullScreenImageView(photoURL: url, isPresented: $isFullScreenPresented)
-            }
+        // Use the item-based full screen cover. When fullScreenPhotoURL is non-nil, the view is presented.
+        .fullScreenCover(item: $fullScreenPhotoURL) { url in
+            FullScreenImageView(photoURL: url)
         }
     }
-
+    
+    // MARK: - Helper Functions
     private func loadMessages() {
         let db = Firestore.firestore()
         db.collection("pixcodes")
@@ -108,7 +115,7 @@ struct ChatView: View {
                 messages = documents.compactMap { ChatMessage(document: $0) }
             }
     }
-
+    
     private func sendTextMessage() {
         guard !newMessage.trimmingCharacters(in: .whitespaces).isEmpty else { return }
         let db = Firestore.firestore()
@@ -125,7 +132,7 @@ struct ChatView: View {
             .addDocument(data: data)
         newMessage = ""
     }
-
+    
     private func sendPhotoMessage(image: UIImage) {
         FirebasePhotoUploader.shared.uploadPhoto(image: image, pixCode: pixCode, photoTag: "ChatPhoto") { urlString, error in
             if let url = urlString {
@@ -144,11 +151,10 @@ struct ChatView: View {
             }
         }
     }
-
+    
     private func markAsSeen(_ message: ChatMessage) {
         guard message.sender != Auth.auth().currentUser?.uid else { return }
         guard !message.seen else { return }
-
         let db = Firestore.firestore()
         db.collection("pixcodes")
             .document(pixCode)
