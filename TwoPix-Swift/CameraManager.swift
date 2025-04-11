@@ -38,6 +38,13 @@ class CameraManager: NSObject, ObservableObject {
         }
     }
     
+    func stopSession() {
+            if session.isRunning {
+                session.stopRunning()
+                print("Camera session stopped.")
+            }
+        }
+    
     func startSession() {
         DispatchQueue.global(qos: .userInitiated).async {
             self.configureSession()

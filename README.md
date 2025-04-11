@@ -1,117 +1,94 @@
 # 📸 TwoPix – A Private Photo Messaging App for Two
 
-**TwoPix** is a secure, intimate photo messaging app designed exclusively for *two people*. Think Snapchat, but tailor-made for just you and your favorite person. No distractions, no feeds — just private, meaningful connection.
+## 🧠 Project Overview
 
-> ⚠️ **Note:** This project is currently under active development. Expect updates, improvements, and occasional changes as we build toward v1.0.
+**TwoPix** is a gesture-driven, minimalist photo messaging app made for exactly **two users**. It creates a private space for sharing photos and messages — think Snapchat, but stripped down to just *you and your person*. No feeds, no distractions, just connection.
 
----
-
-## 🔥 Features
-
-- 🌀 **Animated Background** – A playful, visually dynamic UI with smooth animated effects.
-- 🔐 **Secure Firebase Authentication** – Email/password login support.
-- 🔗 **Pix Code System** – A unique 6-digit code that connects two users for private messaging.
-- 📸 **Integrated Camera Support** – Front/back cameras with flash, pinch-to-zoom, and double-tap flip.
-- 😤️ **Chat System** – Real-time messaging powered by Firestore, including text and photos.
-- 🖼️ **Photo Previews** – Swipe left to send, swipe right to cancel, view full-screen media with gestures.
-- ☁️ **Firebase Firestore & Storage** – All media, metadata, and chat content stored securely in the cloud.
-- 🧠 **Smart UX** – Smooth transitions, permission handling, and responsive feedback throughout.
+Built with `SwiftUI`, `AVFoundation`, and `Firebase`, the app offers a custom camera experience, real-time chat, and an intuitive swipe-to-send UI. Firebase handles user authentication, image uploads, chat data, and cloud functions.
 
 ---
 
-## 🗂 Project Structure
+## 🔑 Key Features
 
-```
-TwoPix/
-├── App/                    // Entry point and main scene
-├── Authentication/         // Login, Sign-up, and AuthManager
-├── Camera/                 // Camera setup and live preview
-├── Chat/                   // Message list, chat bubbles, full-screen viewer
-├── PixCode/                // PixCode generation and submission logic
-├── Profile/                // Basic user profile view
-├── UI/                     // Animated UI elements
-├── Firebase Functions/     // Scheduled deletions for old messages & media
-```
-
----
-
-## 🚀 Firebase Cloud Functions
-
-Two scheduled background jobs:
-- 🢹 `deleteOldChatMessages`: Cleans up messages older than 7 days.
-- 🛋️ `deleteOldPhotos`: Removes images from Storage + Firestore older than 30 days.
-
-These are located in `functions/index.ts`.
-
----
-
-## 📷 FirebasePhotoUploader
-
-Handles:
-- Image compression
-- Firebase Storage upload
-- Firestore metadata creation
-- Photo tag support (`FitCheck`, `Normal`, `Spicy`)
-
-Returns download URL upon success and integrates directly with the chat system.
+- **Authentication**
+  - Email/password login using Firebase Auth
+- **Pix Code Connection**
+  - 6-digit code to securely pair two accounts into one private space
+- **Camera View**
+  - Pinch-to-zoom
+  - Double-tap to flip front/back
+  - Flash toggle (including front flash simulation)
+  - Real-time camera preview with image capture
+- **Photo Preview Overlay**
+  - Swipe **right** to send
+  - Swipe **left** to discard
+  - Double-tap to save image to device
+- **Chat System**
+  - Firestore-based real-time chat
+  - Supports text + tagged images ("Normal", "FitCheck", "Spicy")
+  - Full-screen photo viewing with pinch, pan, and swipe-to-dismiss
+  - Auto scroll-to-bottom + seen-status tracking
+- **Photo Uploader**
+  - JPEG compression
+  - Firebase Storage upload
+  - Firestore metadata handling
 
 ---
 
-## 💬 Chat System
+## ☁️ Firebase Cloud Functions
 
-Supports:
-- Text and image messages
-- Real-time updates using `.addSnapshotListener`
-- Full-screen image preview with drag-to-dismiss
-- Intelligent UI layout for current vs. partner messages
+Two scheduled background tasks:
 
----
+- `deleteOldChatMessages`: Deletes chats older than 7 days
+- `deleteOldPhotos`: Cleans up photos and metadata after 30 days
 
-## ⟳ Pix Code System
-
-- Users generate or submit a **6-digit Pix Code** to link accounts.
-- Firestore tracks connection state under the `pixcodes` and `users` collections.
-- One code = one connection = one private channel.
+Located in `functions/index.ts`.
 
 ---
 
-## 🚣️ Roadmap
+## 🚧 Current Limitations
 
-- [ ] 🎨 Refine UI/UX animations and transitions
-- [ ] 🔔 Add push notifications (Firebase Messaging)
-- [ ] 📹 Support for video messages
-- [ ] 🔐 Enhance encryption & message security
-- [ ] 🌐 Optimize for broader device compatibility
-- [ ] 🎨 Add customizable themes and personalization
+- No push notifications (yet)
+- No video message support
+- No in-app profile editing
+
+---
+
+## 🛠️ Planned Improvements
+
+| Area             | Description                                                                 |
+|------------------|-----------------------------------------------------------------------------|
+| 💬 Chat UI/UX    | Smoother input, typing indicators, media layout enhancements                |
+| 📷 Camera Bugs    | Fix intermittent bugs and UI glitches for smoother capture and transitions |
+| 📹 Video Support  | Add support for recording and sending short video clips                     |
+| 🧭 Navigation UX  | More fluid transitions and onboarding improvements                          |
+| ⚡ Performance    | Optimize Firebase calls and local state management                          |
 
 ---
 
 ## 🧪 Tech Stack
 
 - `SwiftUI`
+- `AVFoundation`
 - `Firebase Auth`
 - `Firebase Firestore`
 - `Firebase Storage`
 - `Firebase Functions (TypeScript)`
-- `AVFoundation` for camera integration
 
 ---
 
-## 📌 Coming Soon
+## 📲 Screenshots *(Coming Soon)*
 
-- Photo expiration logic (based on metadata)
-- Better onboarding UI
-- App icon + launch screen
-- In-app profile editing
+Planned showcase of:
+- Auth screen with animated background
+- Pix Code generation and connection
+- Camera preview + swipe-based photo preview
+- Chat view + full-screen image viewer
 
 ---
-
-## 📲 Screenshots (coming soon)
-
-> Planning to showcase the animated UI, Pix Code screen, and swipe-to-send preview overlay.
 
 ## 🔒 License
 
 This project is licensed under the [Apache License 2.0](./LICENSE).
 
-> ❗ **Notice:** You may not clone, redistribute, or republish this app (TwoPix) in its entirety without prior written permission. Reuse of small code snippets or patterns is allowed under the license, but recreating the full app, UI/UX, or branding is strictly prohibited.
+> ❗ **Note:** Reusing UI/UX, flows, or branding without permission is not allowed. Code snippets may be reused in accordance with the license, but cloning or redistributing the full app is strictly prohibited.
