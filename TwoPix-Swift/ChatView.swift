@@ -19,6 +19,7 @@ struct ChatView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // Use ScrollViewReader to control scrolling
             ScrollViewReader { scrollViewProxy in
                 ScrollView {
                     LazyVStack(spacing: 6) {
@@ -32,12 +33,19 @@ struct ChatView: View {
                             )
                             .onAppear {
                                 markAsSeen(message)
+                                // Optionally scroll to the bottom if this is the last message.
+                                if message.id == messages.last?.id {
+                                    withAnimation {
+                                        scrollViewProxy.scrollTo(message.id, anchor: .bottom)
+                                    }
+                                }
                             }
                         }
                     }
                     .padding(.top, 12)
                 }
                 .background(Color(.systemGroupedBackground))
+                // When the messages change (e.g. a new message is added), scroll to the bottom.
                 .onChange(of: messages.count) { _ in
                     if let lastMessage = messages.last {
                         withAnimation {
@@ -45,6 +53,18 @@ struct ChatView: View {
                         }
                     }
                 }
+                // Also scroll to the bottom once when this view appears.
+                .onAppear {
+                    // Delay briefly to allow messages to be loaded
+                    DispatchQueue.main.async {
+                        if let lastMessage = messages.last {
+                            withAnimation {
+                                scrollViewProxy.scrollTo(lastMessage.id, anchor: .bottom)
+                            }
+                        }
+                    }
+                }
+                // Load messages from Firestore.
                 .onAppear(perform: loadMessages)
             }
             
@@ -128,6 +148,7 @@ struct ChatView: View {
     }
     
     private func markAsSeen(_ message: ChatMessage) {
+        // Don't mark messages as seen if they're sent by the current user.
         guard message.sender != Auth.auth().currentUser?.uid else { return }
         guard !message.seen else { return }
         let db = Firestore.firestore()
