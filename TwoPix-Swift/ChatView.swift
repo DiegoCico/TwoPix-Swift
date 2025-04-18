@@ -1,161 +1,148 @@
 import SwiftUI
 import FirebaseFirestore
 import FirebaseAuth
+import Combine
 
-// Extend String to conform to Identifiable for fullScreenCover.
+// Allow using String? with fullScreenCover(item:)
 extension String: Identifiable {
     public var id: String { self }
 }
 
 struct ChatView: View {
     let pixCode: String
+    @Environment(\.presentationMode) private var presentationMode
 
     @State private var messages: [ChatMessage] = []
-    @State private var newMessage = ""
-    @State private var showImagePicker = false
+    @State private var newMessage: String = ""
+    @State private var showImagePicker: Bool = false
     @State private var selectedImage: UIImage?
-    // An optional String triggers the fullScreenCover.
     @State private var fullScreenPhotoURL: String? = nil
+
+    // Track keyboard height
+    @State private var keyboardHeight: CGFloat = 0
 
     var body: some View {
         VStack(spacing: 0) {
-            // Use ScrollViewReader to control scrolling
-            ScrollViewReader { scrollViewProxy in
+            // Nav Bar
+            HStack {
+                Button { presentationMode.wrappedValue.dismiss() } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.title2)
+                }
+                Text("Chat")
+                    .font(.headline)
+                Spacer()
+            }
+            .padding()
+            .background(Color(.systemGray6).opacity(0.8))
+
+            // Messages List
+            ScrollViewReader { proxy in
                 ScrollView {
-                    LazyVStack(spacing: 6) {
-                        ForEach(messages) { message in
-                            MessageBubble(
-                                message: message,
-                                onPhotoTap: {
-                                    print("Tapped photo, URL: \(message.photoURL ?? "nil")")
-                                    fullScreenPhotoURL = message.photoURL
-                                }
-                            )
-                            .onAppear {
-                                markAsSeen(message)
-                                // Optionally scroll to the bottom if this is the last message.
-                                if message.id == messages.last?.id {
-                                    withAnimation {
-                                        scrollViewProxy.scrollTo(message.id, anchor: .bottom)
-                                    }
-                                }
+                    LazyVStack(spacing: 8) {
+                        ForEach(messages) { msg in
+                            MessageBubble(message: msg) {
+                                fullScreenPhotoURL = msg.photoURL
                             }
+                            .id(msg.id)
                         }
                     }
-                    .padding(.top, 12)
+                    .padding(.vertical, 8)
                 }
-                .background(Color(.systemGroupedBackground))
-                // When the messages change (e.g. a new message is added), scroll to the bottom.
                 .onChange(of: messages.count) { _ in
-                    if let lastMessage = messages.last {
-                        withAnimation {
-                            scrollViewProxy.scrollTo(lastMessage.id, anchor: .bottom)
-                        }
+                    if let lastID = messages.last?.id {
+                        proxy.scrollTo(lastID, anchor: .bottom)
                     }
                 }
-                // Also scroll to the bottom once when this view appears.
-                .onAppear {
-                    // Delay briefly to allow messages to be loaded
-                    DispatchQueue.main.async {
-                        if let lastMessage = messages.last {
-                            withAnimation {
-                                scrollViewProxy.scrollTo(lastMessage.id, anchor: .bottom)
-                            }
-                        }
-                    }
-                }
-                // Load messages from Firestore.
                 .onAppear(perform: loadMessages)
             }
-            
+
+            // Input Bar (moved higher)
             ChatInputBar(
                 message: $newMessage,
                 onSend: sendTextMessage,
                 onImagePicker: { showImagePicker = true }
             )
-            .background(Color(.systemBackground).ignoresSafeArea(.keyboard))
-            .shadow(color: .black.opacity(0.05), radius: 4, y: -2)
+            .padding(.horizontal, 16)
+            .padding(.bottom, keyboardHeight + 24) // ↑ lifted further up
+            .background(Color(.systemGray6).opacity(0.8))
+            .animation(.easeOut(duration: 0.2), value: keyboardHeight)
         }
-        .navigationTitle("Chat")
-        .navigationBarTitleDisplayMode(.inline)
+        .edgesIgnoringSafeArea(.bottom)
+        // MARK: Keyboard Observers
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { note in
+            if let frame = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
+                keyboardHeight = frame.height
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            keyboardHeight = 0
+        }
+        // Image Picker Sheet
         .sheet(isPresented: $showImagePicker, onDismiss: {
-            if let image = selectedImage {
-                sendPhotoMessage(image: image)
+            if let img = selectedImage {
+                sendPhotoMessage(image: img)
             }
         }) {
             ImagePicker(selectedImage: $selectedImage)
         }
+        // Full‑Screen Photo
         .fullScreenCover(item: $fullScreenPhotoURL) { url in
             FullScreenImageView(photoURL: url)
         }
     }
-    
-    // MARK: - Helper Functions
-    
+
+    // MARK: — Firestore
+
     private func loadMessages() {
-        let db = Firestore.firestore()
-        db.collection("pixcodes")
+        Firestore.firestore()
+            .collection("pixcodes")
             .document(pixCode)
             .collection("chats")
             .order(by: "timestamp")
-            .addSnapshotListener { snapshot, error in
-                if let error = error {
-                    print("Error fetching messages: \(error.localizedDescription)")
-                    return
-                }
-                guard let documents = snapshot?.documents else { return }
-                messages = documents.compactMap { ChatMessage(document: $0) }
+            .addSnapshotListener { snap, err in
+                guard err == nil, let docs = snap?.documents else { return }
+                messages = docs.compactMap { ChatMessage(document: $0) }
             }
     }
-    
+
     private func sendTextMessage() {
-        guard !newMessage.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-        let db = Firestore.firestore()
+        let trimmed = newMessage.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
         let data: [String: Any] = [
-            "text": newMessage,
+            "text": trimmed,
             "timestamp": Timestamp(date: Date()),
             "sender": Auth.auth().currentUser?.uid ?? "unknown",
             "messageType": "text",
             "seen": false
         ]
-        db.collection("pixcodes")
+        Firestore.firestore()
+            .collection("pixcodes")
             .document(pixCode)
             .collection("chats")
             .addDocument(data: data)
         newMessage = ""
     }
-    
+
     private func sendPhotoMessage(image: UIImage) {
-        FirebasePhotoUploader.shared.uploadPhoto(image: image, pixCode: pixCode, photoTag: "ChatPhoto") { urlString, error in
-            if let url = urlString {
-                let db = Firestore.firestore()
-                // Change this value depending on the type of photo being sent.
-                // For example, use "FitCheck" if the user selected a FitCheck image.
-                let messageType = "spicy" // or "FitCheck", "photo", or "normal"
-                let data: [String: Any] = [
-                    "photoURL": url,
-                    "messageType": messageType,
-                    "timestamp": Timestamp(date: Date()),
-                    "sender": Auth.auth().currentUser?.uid ?? "unknown",
-                    "seen": false
-                ]
-                db.collection("pixcodes")
-                    .document(pixCode)
-                    .collection("chats")
-                    .addDocument(data: data)
-            }
+        FirebasePhotoUploader.shared.uploadPhoto(
+            image: image,
+            pixCode: pixCode,
+            photoTag: "normal"
+        ) { urlStr, _ in
+            guard let url = urlStr else { return }
+            let data: [String: Any] = [
+                "photoURL": url,
+                "messageType": "normal",
+                "timestamp": Timestamp(date: Date()),
+                "sender": Auth.auth().currentUser?.uid ?? "unknown",
+                "seen": false
+            ]
+            Firestore.firestore()
+                .collection("pixcodes")
+                .document(pixCode)
+                .collection("chats")
+                .addDocument(data: data)
         }
-    }
-    
-    private func markAsSeen(_ message: ChatMessage) {
-        // Don't mark messages as seen if they're sent by the current user.
-        guard message.sender != Auth.auth().currentUser?.uid else { return }
-        guard !message.seen else { return }
-        let db = Firestore.firestore()
-        db.collection("pixcodes")
-            .document(pixCode)
-            .collection("chats")
-            .document(message.id)
-            .updateData(["seen": true])
     }
 }

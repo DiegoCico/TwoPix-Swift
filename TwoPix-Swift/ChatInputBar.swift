@@ -11,20 +11,23 @@ struct ChatInputBar: View {
                 Image(systemName: "photo.fill")
                     .font(.system(size: 22))
             }
-            
-            TextField("Message...", text: $message)
+
+            TextField("Type a message…", text: $message)
                 .padding(10)
-                .background(Color(.systemGray6))
-                .cornerRadius(16)
-            
+                .background(Color(.systemGray5))
+                .clipShape(Capsule())
+
             Button(action: onSend) {
                 Image(systemName: "paperplane.fill")
-                    .font(.system(size: 22))
                     .rotationEffect(.degrees(45))
+                    .opacity(canSend ? 1 : 0.5)
             }
-            .disabled(message.trimmingCharacters(in: .whitespaces).isEmpty)
+            .disabled(!canSend)
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 10)
+    }
+
+    private var canSend: Bool {
+        !message.trimmingCharacters(in: .whitespaces).isEmpty
     }
 }
